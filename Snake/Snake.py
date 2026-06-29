@@ -71,6 +71,14 @@ class Food:
                 foods.append([food_x, food_y])
         return foods
 
+    def add_food(self, snake_body):
+        while True:
+            food_x = round(random.randrange(0, self.play_area_width - self.block_size) / self.block_size) * self.block_size
+            food_y = round(random.randrange(0, self.window_height - self.block_size) / self.block_size) * self.block_size
+            if [food_x, food_y] not in snake_body and [food_x, food_y] not in self.foods:  # 确保新食物不在蛇身上也不与其他食物重叠
+                self.foods.append([food_x, food_y])
+                break
+
 
 class Scoreboard:
     def __init__(self, high_score_all_time):
@@ -111,6 +119,7 @@ class Game:
         self.snake = Snake(self.round_to_grid(play_area_width // 2), self.round_to_grid(window_height // 2), block_size)
         self.scoreboard = Scoreboard(self.get_high_score_from_file())
         self.food = Food(self.snake.body, self.block_size, self.play_area_width, self.window_height, self.scoreboard.level)  # 传入初始level
+        self.show_direction_arrow = False  # 新增变量，用于控制是否显示方向箭头
 
     def round_to_grid(self, value):
         return round(value / self.block_size) * self.block_size
@@ -143,6 +152,38 @@ class Game:
         self.window.blit(level_text, (self.play_area_width + 20, 160))
         self.window.blit(high_score_text, (self.play_area_width + 5, 180))
 
+    def draw_direction_arrow(self):
+        if self.snake.current_direction is not None:
+            head = self.snake.body[-1]
+            arrow_color = (255, 0, 0)  # 红色箭头
+            arrow_size = self.block_size // 2
+            arrow_offset = self.block_size // 4
+
+            if self.snake.current_direction == 'UP':
+                pygame.draw.polygon(self.window, arrow_color, [
+                    (head[0] + arrow_offset, head[1]),
+                    (head[0] + arrow_size, head[1] - arrow_size),
+                    (head[0] + self.block_size - arrow_offset, head[1])
+                ])
+            elif self.snake.current_direction == 'DOWN':
+                pygame.draw.polygon(self.window, arrow_color, [
+                    (head[0] + arrow_offset, head[1] + self.block_size),
+                    (head[0] + arrow_size, head[1] + self.block_size + arrow_size),
+                    (head[0] + self.block_size - arrow_offset, head[1] + self.block_size)
+                ])
+            elif self.snake.current_direction == 'LEFT':
+                pygame.draw.polygon(self.window, arrow_color, [
+                    (head[0], head[1] + arrow_offset),
+                    (head[0] - arrow_size, head[1] + arrow_size),
+                    (head[0], head[1] + self.block_size - arrow_offset)
+                ])
+            elif self.snake.current_direction == 'RIGHT':
+                pygame.draw.polygon(self.window, arrow_color, [
+                    (head[0] + self.block_size, head[1] + arrow_offset),
+                    (head[0] + self.block_size + arrow_size, head[1] + arrow_size),
+                    (head[0] + self.block_size, head[1] + self.block_size - arrow_offset)
+                ])
+
     def run(self):
         while not self.game_over:
             for event in pygame.event.get():
@@ -163,6 +204,7 @@ class Game:
                         self.started = True
                     elif event.key == pygame.K_p:
                         self.paused = not self.paused
+                        self.show_direction_arrow = not self.show_direction_arrow  # 按下P键切换显示方向箭头
 
             if not self.paused and self.started:
                 self.snake.move()
@@ -177,9 +219,9 @@ class Game:
                         self.food.foods.remove(food_pos)  # 移除被吃掉的食物
                         break
 
-                # 如果所有食物都被吃完了，重新生成食物
-                if len(self.food.foods) == 0:
-                    self.food = Food(self.snake.body, self.block_size, self.play_area_width, self.window_height, self.scoreboard.level)
+                # 生成食物的条件：只要在场的食物数量小于当前等级且小于10
+                if len(self.food.foods) < min(self.scoreboard.level, 10):
+                    self.food.add_food(self.snake.body)
 
             # 绘制背景
             self.window.fill(black)
@@ -195,6 +237,10 @@ class Game:
             # 绘制贪吃蛇
             for segment in self.snake.body:
                 pygame.draw.rect(self.window, white, [segment[0], segment[1], self.block_size, self.block_size])
+
+            # 当显示方向箭头时绘制箭头
+            if self.show_direction_arrow:
+                self.draw_direction_arrow()
 
             # 当游戏暂停时显示"paused"
             if self.paused:
@@ -249,6 +295,7 @@ class Game:
         self.game_over = False
         self.paused = False
         self.started = False  # 重置游戏开始标志
+        self.show_direction_arrow = False  # 重置显示方向箭头标志
 
     def get_high_score_from_file(self):
         try:
