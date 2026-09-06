@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>扫雷 · 终极稳定版</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460); display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Segoe UI', Arial, sans-serif; user-select: none; -webkit-user-select: none; touch-action: manipulation; overflow: hidden; color: #eee; }
+        #menu { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; padding: 20px; }
+        #menu h1 { font-size: 2.8em; margin-bottom: 25px; background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #1dd1a1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; filter: drop-shadow(0 0 15px rgba(255,107,107,0.3)); }
+        .menu-item { font-size: 1.2em; padding: 12px 28px; margin: 7px; width: 260px; text-align: center; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; color: #ddd; cursor: pointer; transition: all 0.3s; }
+        .menu-item:hover { transform: translateY(-3px); background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.3); color: #fff; }
+        .menu-item.selected { border-color: #4CAF50; background: rgba(76,175,80,0.15); color: #fff; }
+        #menu p { color: rgba(255,255,255,0.6); margin-top: 20px; font-size: 0.9em; }
+        #game { display: none; position: relative; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; padding: 0; }
+        #top-bar-secondary { display: flex; align-items: center; width: 90%; max-width: 600px; margin-bottom: 2px; padding: 2px 10px; }
+        #btn-home { background: rgba(255,255,255,0.1); border: none; font-size: 1.0em; cursor: pointer; color: #fff; padding: 3px 5px; border-radius: 50%; transition: all 0.2s; }
+        #btn-home:hover { background: rgba(255,255,255,0.25); transform: scale(1.1); }
+        #board-size { font-family: monospace; background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 0; font-size: 0.75em; color: #fff; margin-left: 8px; display: none; }
+        #custom-inputs { display: none; gap: 4px; margin-left: 8px; }
+        #custom-inputs input { width: 40px; padding: 2px; font-size: 0.7em; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 0; color: #fff; text-align: center; }
+        #hp-display { font-family: monospace; background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 0; font-size: 0.75em; color: #ff6b6b; margin-left: 8px; display: none; }
+        #top-bar { display: flex; align-items: center; justify-content: space-between; width: 90%; max-width: 600px; margin-bottom: 3px; padding: 5px 10px; background: rgba(255,255,255,0.08); border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 2px 8px rgba(0,0,0,0.3); color: #fff; font-size: 0.85em; font-weight: bold; }
+        #mines-count, #timer { font-family: 'Courier New', monospace; letter-spacing: 1px; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 0; font-size: 0.75em; min-width: 40px; text-align: center; }
+        #smiley { font-size: 1.4em; background: none; border: none; cursor: pointer; }
+        #canvas-wrapper { max-width: 100%; max-height: calc(100vh - 160px); overflow: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; border-radius: 10px; background: rgba(0,0,0,0.3); padding: 2px; box-shadow: inset 0 0 15px rgba(0,0,0,0.5); position: relative; }
+        #game.fullscreen-mode #canvas-wrapper { overflow: hidden; max-height: none; height: calc(100vh - 80px); }
+        canvas { display: block; margin: auto; background: #2b2f42; border-radius: 6px; touch-action: pan-x pan-y; }
+        #rainbow-bar-container { width: 100%; height: 5px; background: rgba(0,0,0,0.4); border-radius: 3px; overflow: hidden; margin-bottom: 2px; display: none; }
+        #rainbow-bar { height: 100%; width: 100%; background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3); background-size: 400% 100%; animation: rainbow-slide 3s linear infinite; border-radius: 3px; transition: width 0.1s linear; }
+        @keyframes rainbow-slide { 0% { background-position: 0% 0%; } 100% { background-position: 400% 0%; } }
+        #btn-auto-flag { display: block; margin: 5px auto; padding: 5px 15px; font-size: 0.85em; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 15px; color: #fff; cursor: pointer; transition: all 0.2s; }
+        #btn-auto-flag.active { background: rgba(76,175,80,0.3); border-color: #4CAF50; }
+        #btn-auto-flag:hover { background: rgba(255,255,255,0.2); }
+        #endless-rules { display: none; color: rgba(255,255,255,0.7); font-size: 0.65em; text-align: left; background: rgba(0,0,0,0.5); padding: 5px 8px; border-radius: 6px; margin: 0 auto 5px; width: 90%; max-width: 600px; white-space: pre-line; }
+        #endless-stats { display: none; position: absolute; left: 8px; bottom: 8px; color: rgba(255,255,255,0.7); font-size: 0.7em; background: rgba(0,0,0,0.5); padding: 3px 6px; border-radius: 6px; z-index: 5; }
+        #easy-info { display: none; color: rgba(255,255,255,0.7); font-size: 0.8em; text-align: center; margin-top: 4px; padding: 3px 8px; background: rgba(255,255,255,0.05); border-radius: 8px; width: 80%; max-width: 350px; }
+        #status-bar { display: none; }
+        #progress-bar-container { position: absolute; bottom: 75px; left: 50%; transform: translateX(-50%); width: 70%; height: 5px; background: rgba(255,255,255,0.15); border-radius: 3px; overflow: hidden; }
+        #progress-fill { height: 100%; background: #4CAF50; width: 0%; border-radius: 3px; transition: width 0.2s; }
+        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10,10,20,0.75); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 20; }
+        #overlay span { color: #fff; font-size: 1.6em; margin: 15px; }
+        #overlay button { font-size: 1em; padding: 10px 20px; margin: 5px; border: none; border-radius: 20px; background: rgba(255,255,255,0.18); color: #fff; cursor: pointer; width: 150px; border: 1px solid rgba(255,255,255,0.25); }
+        #overlay button:hover { background: rgba(255,255,255,0.3); transform: translateY(-2px); }
+        #custom-dialog { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 30; justify-content: center; align-items: center; }
+        #custom-dialog .dialog-box { background: rgba(30,30,50,0.95); border: 1px solid rgba(255,255,255,0.2); border-radius: 20px; padding: 25px; width: 320px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); text-align: center; }
+        #custom-dialog h2 { color: #fff; margin-bottom: 20px; font-size: 1.5em; }
+        #custom-dialog .input-group { display: flex; align-items: center; justify-content: space-between; margin: 10px 0; color: #ddd; font-size: 1.1em; }
+        #custom-dialog .input-group input { width: 100px; padding: 8px; font-size: 1em; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; color: #fff; text-align: center; }
+        #custom-dialog .dialog-buttons { display: flex; justify-content: space-between; margin-top: 20px; }
+        #custom-dialog .dialog-buttons button { flex: 1; margin: 0 5px; padding: 10px; font-size: 1em; border: none; border-radius: 10px; cursor: pointer; background: rgba(255,255,255,0.15); color: #fff; transition: all 0.2s; }
+        #custom-dialog .dialog-buttons button:hover { background: rgba(255,255,255,0.3); }
+        #custom-dialog .dialog-buttons button:first-child { background: rgba(76,175,80,0.3); }
+        #custom-dialog .dialog-buttons button:last-child { background: rgba(255,107,107,0.3); }
+        #num-keyboard { display: none; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); border-radius: 12px; padding: 10px; z-index: 40; grid-template-columns: repeat(3, 50px); gap: 8px; }
+        #num-keyboard button { width: 50px; height: 50px; font-size: 1.4em; border: none; border-radius: 10px; background: rgba(255,255,255,0.15); color: #fff; cursor: pointer; }
+        #num-keyboard button:active { background: rgba(255,255,255,0.3); }
+        #num-keyboard .key-special { background: rgba(255,107,107,0.3); }
+    </style>
+</head>
+<body>
+    <div id="menu">
+        <h1>扫雷</h1>
+        <div class="menu-item selected" data-mode="easy">简单 (9x9, 10雷)</div>
+        <div class="menu-item" data-mode="medium">中等 (16x16, 40雷)</div>
+        <div class="menu-item" data-mode="hard">困难 (30×16, 99雷)</div>
+        <div class="menu-item" data-mode="fullscreen">全屏 (自动适配)</div>
+        <div class="menu-item" data-mode="endless">无尽挑战 (16x12, 循环)</div>
+        <div class="menu-item" data-mode="custom">自定义模式</div>
+        <p>操作：点击插旗，长按翻开，首次点击直接翻开</p>
+    </div>
+
+    <div id="game">
+        <div id="top-bar-secondary">
+            <button id="btn-home">🏠</button>
+            <span id="board-size"></span>
+            <div id="custom-inputs">
+                <input type="text" id="input-rows" value="9" readonly>
+                <input type="text" id="input-cols" value="9" readonly>
+                <input type="text" id="input-mines" value="10" readonly>
+            </div>
+            <span id="hp-display" style="display:none;">❤️100</span>
+        </div>
+        <div id="top-bar">
+            <span id="mines-count">000</span>
+            <button id="smiley">😊</button>
+            <span id="timer">000</span>
+        </div>
+        <div id="rainbow-bar-container"><div id="rainbow-bar"></div></div>
+        <div id="canvas-wrapper"><canvas id="cv"></canvas></div>
+        <button id="btn-auto-flag">自动标雷：关</button>
+        <div id="endless-rules"></div>
+        <div id="easy-info">点击格子插旗，长按翻开，数字表示周围雷数</div>
+        <div id="endless-stats"></div>
+        <div id="progress-bar-container"><div id="progress-fill"></div></div>
+        <div id="status-bar"></div>
+        <div id="overlay">
+            <span id="result-text"></span>
+            <button id="btn-restart">再来一局</button>
+            <button id="btn-menu">返回菜单</button>
+        </div>
+    </div>
+
+    <div id="custom-dialog">
+        <div class="dialog-box">
+            <h2>自定义雷区</h2>
+            <div class="input-group"><label>行数</label><input type="text" id="input-rows-dialog" value="9" readonly></div>
+            <div class="input-group"><label>列数</label><input type="text" id="input-cols-dialog" value="9" readonly></div>
+            <div class="input-group"><label>雷数</label><input type="text" id="input-mines-dialog" value="10" readonly></div>
+            <div class="dialog-buttons">
+                <button id="btn-custom-confirm">确定</button>
+                <button id="btn-custom-cancel">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="num-keyboard">
+        <button>1</button><button>2</button><button>3</button>
+        <button>4</button><button>5</button><button>6</button>
+        <button>7</button><button>8</button><button>9</button>
+        <button class="key-special" id="key-clear">C</button><button>0</button><button class="key-special" id="key-back">←</button>
+        <button class="key-special" id="key-ok" style="grid-column: span 3;">确定</button>
+    </div>
+
+    <script>
+        'use strict';
+
+        // ==================== 常量与配置 ====================
+        var NUMBER_COLORS = [null, '#4dabf7', '#51cf66', '#ff6b6b', '#b197fc', '#ffa94d', '#22b8cf', '#f06595', '#adb5bd'];
+        var DIFFICULTIES = {
+            easy: { rows: 9, cols: 9, mines: 10 },
+            medium: { rows: 16, cols: 16, mines: 40 },
+            hard: { rows: 30, cols: 16, mines: 99 },
+            endless: { rows: 16, cols: 12, mines: 30 }
+        };
+        var LONG_PRESS_MS = 500;
+        var FLASH_DURATION_MS = 300;
+        var ZOOM_STEP = 2;
+        var DRAG_THRESHOLD = 10;
+        var ENDLESS_COUNTDOWN_MS = 60000;
+        var ENDLESS_LOADING_MS = 30000;
+
+        var mineImg = new Image();
+        mineImg.src = 'mine.png';
+        var fmImg = new Image();
+        fmImg.src = 'fm.png';
+
+        var menuDiv = document.getElementById('menu');
+        var gameDiv = document.getElementById('game');
+        var canvas = document.getElementById('cv');
+        var ctx = canvas.getContext('2d');
+        var canvasWrapper = document.getElementById('canvas-wrapper');
+        var minesCountSpan = document.getElementById('mines-count');
+        var timerSpan = document.getElementById('timer');
+        var boardSizeSpan = document.getElementById('board-size');
+        var hpDisplay = document.getElementById('hp-display');
+        var smileyBtn = document.getElementById('smiley');
+        var btnHome = document.getElementById('btn-home');
+        var statusBar = document.getElementById('status-bar');
+        var progressContainer = document.getElementById('progress-bar-container');
+        var progressFill = document.getElementById('progress-fill');
+        var overlay = document.getElementById('overlay');
+        var resultText = document.getElementById('result-text');
+        var btnRestart = document.getElementById('btn-restart');
+        var btnMenu = document.getElementById('btn-menu');
+        var menuItems = document.querySelectorAll('.menu-item');
+        var rainbowBarContainer = document.getElementById('rainbow-bar-container');
+        var rainbowBar = document.getElementById('rainbow-bar');
+        var customInputs = document.getElementById('custom-inputs');
+        var inputRows = document.getElementById('input-rows');
+        var inputCols = document.getElementById('input-cols');
+        var inputMines = document.getElementById('input-mines');
+        var numKeyboard = document.getElementById('num-keyboard');
+        var easyInfo = document.getElementById('easy-info');
+        var endlessStats = document.getElementById('endless-stats');
+        var endlessRules = document.getElementById('endless-rules');
+        var btnAutoFlag = document.getElementById('btn-auto-flag');
+        var customDialog = document.getElementById('custom-dialog');
+        var inputRowsDialog = document.getElementById('input-rows-dialog');
+        var inputColsDialog = document.getElementById('input-cols-dialog');
+        var inputMinesDialog = document.getElementById('input-mines-dialog');
+        var btnCustomConfirm = document.getElementById('btn-custom-confirm');
+        var btnCustomCancel = document.getElementById('btn-custom-cancel');
+
+        var game = null;
+        var mode = 'easy';
+        var menuIndex = 0;
+        var longPressTimer = null;
+        var longPressTriggered = false;
+        var pressStartPos = null;
+        var pressStartClientX = 0;
+        var pressStartClientY = 0;
+        var isDragging = false;
+        var timerInterval = null;
+        var startTime = null;
+        var elapsedSeconds = 0;
+        var minCellSize = 15;
+        var maxCellSize = 40;
+        var endlessPhase = 'countdown';
+        var endlessPhaseStartTime = 0;
+        var endlessWrongFlagCount = 0;
+        var endlessUnmarkedMineCount = 0;
+        var endlessHp = 100;
+        var endlessStartTime = 0;
+        var currentInputField = null;
+        var customConfig = { rows: 9, cols: 9, mines: 10 };
+        var pinchStartDistance = 0;
+        var pinchStartCellSize = 0;
+        var isPinching = false;
+        var initialCellSizeForWin = null;
+        var autoFlagEnabled = false;
+
+        function calculateCellSize(rows, cols, isFullscreen) {
+            var availWidth = window.innerWidth - 20;
+            var availHeight = window.innerHeight - 190;
+            if (isFullscreen) {
+                availWidth = window.innerWidth;
+                availHeight = window.innerHeight - 70;
+            }
+            return Math.max(15, Math.floor(Math.min(availWidth / cols, availHeight / rows)));
+        }
+
+        function updateZoomBounds() {
+            maxCellSize = calculateCellSize(9, 9, false);
+            minCellSize = calculateCellSize(16, 30, false);
+            if (minCellSize > maxCellSize) {
+                var tmp = minCellSize;
+                minCellSize = maxCellSize;
+                maxCellSize = tmp;
+            }
+        }
+        updateZoomBounds();
+
+        function updateMenuSelection() {
+            menuItems.forEach(function(item, i) {
+                item.classList.toggle('selected', i === menuIndex);
+            });
+        }
+
+        function navigateMenu(d) {
+            menuIndex = (menuIndex + d + menuItems.length) % menuItems.length;
+            updateMenuSelection();
+        }
+
+        function startGame(m) {
+            mode = m;
+            autoFlagEnabled = false;
+            updateAutoFlagButton();
+            if (mode === 'custom') {
+                customDialog.style.display = 'flex';
+                inputRowsDialog.value = customConfig.rows;
+                inputColsDialog.value = customConfig.cols;
+                inputMinesDialog.value = customConfig.mines;
+                return;
+            }
+            menuDiv.style.display = 'none';
+            gameDiv.style.display = 'flex';
+            overlay.style.display = 'none';
+            rainbowBarContainer.style.display = (mode === 'endless') ? 'block' : 'none';
+            hpDisplay.style.display = (mode === 'endless') ? 'inline-block' : 'none';
+            initGame();
+        }
+
+        function exitToMenu() {
+            game = null;
+            clearInterval(timerInterval);
+            menuDiv.style.display = 'flex';
+            gameDiv.style.display = 'none';
+            overlay.style.display = 'none';
+            customDialog.style.display = 'none';
+            progressContainer.style.display = 'none';
+            rainbowBarContainer.style.display = 'none';
+            numKeyboard.style.display = 'none';
+            boardSizeSpan.style.display = 'none';
+            endlessStats.style.display = 'none';
+            endlessRules.style.display = 'none';
+            gameDiv.classList.remove('fullscreen-mode');
+            window.removeEventListener('resize', handleResize);
+        }
+
+        function restartGame() {
+            if (game && game.scrollTimer) clearInterval(game.scrollTimer);
+            clearInterval(timerInterval);
+            initGame();
+        }
+
+        function updateAutoFlagButton() {
+            if (autoFlagEnabled) {
+                btnAutoFlag.textContent = '自动标雷：开';
+                btnAutoFlag.classList.add('active');
+            } else {
+                btnAutoFlag.textContent = '自动标雷：关';
+                btnAutoFlag.classList.remove('active');
+            }
+        }
+
+        function calculateFullscreenConfig() {
+            var simpleCellSize = calculateCellSize(9, 9, false);
+            var topBarHeight = 80;
+            var margin = 10;
+            var availWidth = window.innerWidth - margin * 2;
+            var availHeight = window.innerHeight - topBarHeight - margin * 2;
+            var cols = Math.floor(availWidth / simpleCellSize);
+            var rows = Math.floor(availHeight / simpleCellSize);
+            cols = Math.max(5, cols);
+            rows = Math.max(5, rows);
+            var mines = Math.floor(rows * cols * 0.156);
+            mines = Math.max(1, Math.min(mines, rows * cols - 1));
+            return { rows: rows, cols: cols, mines: mines, cellSize: simpleCellSize };
+        }
+
+        function initGame() {
+            var config, cellSize;
+            if (mode === 'fullscreen') {
+                config = calculateFullscreenConfig();
+                cellSize = config.cellSize;
+                gameDiv.classList.add('fullscreen-mode');
+            } else {
+                gameDiv.classList.remove('fullscreen-mode');
+                if (mode === 'custom') {
+                    config = customConfig;
+                    cellSize = calculateCellSize(config.rows, config.cols, false);
+                } else {
+                    config = DIFFICULTIES[mode];
+                    cellSize = calculateCellSize(config.rows, config.cols, false);
+                }
+                if (mode === 'easy') cellSize = Math.max(minCellSize, cellSize - 2);
+            }
+            cellSize = Math.max(minCellSize, Math.min(maxCellSize, cellSize));
+            initialCellSizeForWin = cellSize;
+
+            canvas.width = config.cols * cellSize;
+            canvas.height = config.rows * cellSize;
+            canvas.style.width = canvas.width + 'px';
+            canvas.style.height = canvas.height + 'px';
+            canvasWrapper.scrollTop = 0;
+            canvasWrapper.scrollLeft = 0;
+
+            game = {
+                mode: mode,
+                rows: config.rows,
+                cols: config.cols,
+                mines: config.mines,
+                cellSize: cellSize,
+                board: [],
+                revealed: [],
+                flagged: [],
+                firstClick: true,
+                gameOver: false,
+                win: false,
+                score: 0,
+                scrolling: mode === 'endless',
+                endless: mode === 'endless',
+                scrollTimer: null,
+                animationId: null,
+                flashCells: [],
+                flashStartTime: 0,
+                flashingMine: null
+            };
+
+            boardSizeSpan.style.display = (mode === 'fullscreen') ? 'inline-block' : 'none';
+            if (mode === 'fullscreen') boardSizeSpan.textContent = game.rows + '×' + game.cols;
+            customInputs.style.display = (mode === 'custom') ? 'flex' : 'none';
+            if (mode === 'custom') {
+                inputRows.value = game.rows;
+                inputCols.value = game.cols;
+                inputMines.value = game.mines;
+            }
+
+            if (game.endless) {
+                endlessHp = 100;
+                endlessWrongFlagCount = 0;
+                endlessUnmarkedMineCount = 0;
+                endlessPhase = 'countdown';
+                endlessPhaseStartTime = performance.now();
+                endlessStartTime = performance.now();
+                hpDisplay.textContent = '❤️' + endlessHp;
+                hpDisplay.style.display = 'inline-block';
+                rainbowBarContainer.style.display = 'block';
+                rainbowBar.style.width = '100%';
+                endlessStats.style.display = 'block';
+                endlessRules.style.display = 'block';
+                endlessRules.textContent = '无尽挑战规则：\n1，扫雷区域会向上滚动（初始倒计时60秒，然后开始30秒加载，加载满后）最上方5排雷会消失，下方会新生成5排雷（然后再清空彩虹加载条，开始30秒加载，不断重复这个过程）\n2，计数扣HP，玩家初始有100HP：\n错旗5次扣3HP；未标雷3次扣2HP；踩雷扣5HP';
+                updateEndlessStats();
+            } else {
+                hpDisplay.style.display = 'none';
+                rainbowBarContainer.style.display = 'none';
+                endlessStats.style.display = 'none';
+                endlessRules.style.display = 'none';
+            }
+
+            if (mode === 'easy') easyInfo.style.display = 'block';
+            else easyInfo.style.display = 'none';
+
+            for (var r = 0; r < game.rows; r++) {
+                game.board.push(new Array(game.cols).fill(0));
+                game.revealed.push(new Array(game.cols).fill(false));
+                game.flagged.push(new Array(game.cols).fill(0));
+            }
+
+            overlay.style.display = 'none';
+            clearInterval(timerInterval);
+            elapsedSeconds = 0;
+            startTime = null;
+            timerSpan.textContent = '000';
+            smileyBtn.textContent = '😊';
+            updateMinesCount();
+            if (game.animationId) cancelAnimationFrame(game.animationId);
+            gameLoop();
+        }
+
+        function startTimer() {
+            if (startTime === null && !game.gameOver && !game.win) {
+                startTime = Date.now();
+                timerInterval = setInterval(function() {
+                    if (game && !game.gameOver && !game.win) {
+                        elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+                        timerSpan.textContent = elapsedSeconds.toString().padStart(3, '0');
+                    } else {
+                        clearInterval(timerInterval);
+                    }
+                }, 200);
+            }
+        }
+
+        function stopTimer() { clearInterval(timerInterval); }
+
+        function placeMines(safeRow, safeCol) {
+            var rows = game.rows, cols = game.cols;
+            for (var r = 0; r < rows; r++) {
+                for (var c = 0; c < cols; c++) {
+                    game.board[r][c] = 0;
+                }
+            }
+            var safeZone = new Set();
+            for (var dr = -1; dr <= 1; dr++) {
+                for (var dc = -1; dc <= 1; dc++) {
+                    var nr = safeRow + dr, nc = safeCol + dc;
+                    if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) safeZone.add(nr + ',' + nc);
+                }
+            }
+            var candidates = [];
+            for (var r = 0; r < rows; r++) {
+                for (var c = 0; c < cols; c++) {
+                    if (!safeZone.has(r + ',' + c)) candidates.push([r, c]);
+                }
+            }
+            candidates.sort(function() { return Math.random() - 0.5; });
+            var mineCount = Math.min(game.mines, candidates.length);
+            for (var i = 0; i < mineCount; i++) {
+                var pos = candidates[i];
+                game.board[pos[0]][pos[1]] = -1;
+            }
+            for (var r = 0; r < rows; r++) {
+                for (var c = 0; c < cols; c++) {
+                    if (game.board[r][c] === -1) continue;
+                    var n = 0;
+                    for (var dr = -1; dr <= 1; dr++) {
+                        for (var dc = -1; dc <= 1; dc++) {
+                            var nr = r + dr, nc = c + dc;
+                            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && game.board[nr][nc] === -1) n++;
+                        }
+                    }
+                    game.board[r][c] = n;
+                }
+            }
+        }
+
+        function drawCellAt(row, col, x, y, board, revealed, flagged, flashMine) {
+            if (flashMine === undefined) flashMine = false;
+            var cellSize = game.cellSize;
+            if (revealed[row][col]) {
+                if (flashMine) {
+                    var flash = Math.floor(performance.now() / 300) % 2 === 0;
+                    ctx.fillStyle = flash ? '#ff0000' : '#ffff00';
+                } else {
+                    ctx.fillStyle = '#3a3f5c';
+                }
+                ctx.fillRect(x, y, cellSize, cellSize);
+                ctx.strokeStyle = '#1e1e2e';
+                ctx.lineWidth = 0.5;
+                ctx.strokeRect(x, y, cellSize, cellSize);
+
+                if (board[row][col] === -1) {
+                    if (mineImg.complete && mineImg.naturalWidth > 0) {
+                        ctx.drawImage(mineImg, x, y, cellSize, cellSize);
+                    } else {
+                        var cx = x + cellSize / 2, cy = y + cellSize / 2, radius = cellSize * 0.3;
+                        ctx.fillStyle = '#ff4757';
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    if (flagged[row][col] === 1) {
+                        if (fmImg.complete && fmImg.naturalWidth > 0) {
+                            ctx.drawImage(fmImg, x, y, cellSize, cellSize);
+                        } else {
+                            var cx = x + cellSize / 2, cy = y + cellSize / 2, flagSize = cellSize * 0.3;
+                            ctx.fillStyle = '#ff6b6b';
+                            ctx.beginPath();
+                            ctx.moveTo(cx - flagSize, cy - flagSize);
+                            ctx.lineTo(cx + flagSize, cy - flagSize * 0.4);
+                            ctx.lineTo(cx - flagSize, cy + flagSize * 0.4);
+                            ctx.closePath();
+                            ctx.fill();
+                            ctx.strokeStyle = '#fff';
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            ctx.moveTo(cx - flagSize, cy - flagSize);
+                            ctx.lineTo(cx - flagSize, cy + flagSize);
+                            ctx.stroke();
+                        }
+                    }
+                } else if (board[row][col] > 0) {
+                    ctx.fillStyle = NUMBER_COLORS[board[row][col]];
+                    ctx.font = 'bold ' + Math.floor(cellSize * 0.62) + 'px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(board[row][col], x + cellSize / 2, y + cellSize / 2);
+                }
+            } else {
+                ctx.fillStyle = '#4a4f6a';
+                ctx.fillRect(x, y, cellSize, cellSize);
+                ctx.strokeStyle = '#1e1e2e';
+                ctx.lineWidth = 0.5;
+                ctx.strokeRect(x, y, cellSize, cellSize);
+                if (flagged[row][col] === 1) {
+                    var cx = x + cellSize / 2, cy = y + cellSize / 2, flagSize = cellSize * 0.3;
+                    ctx.fillStyle = '#ff6b6b';
+                    ctx.beginPath();
+                    ctx.moveTo(cx - flagSize, cy - flagSize);
+                    ctx.lineTo(cx + flagSize, cy - flagSize * 0.4);
+                    ctx.lineTo(cx - flagSize, cy + flagSize * 0.4);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(cx - flagSize, cy - flagSize);
+                    ctx.lineTo(cx - flagSize, cy + flagSize);
+                    ctx.stroke();
+                } else if (flagged[row][col] === 2) {
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold ' + Math.floor(cellSize * 0.6) + 'px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('?', x + cellSize / 2, y + cellSize / 2);
+                }
+            }
+        }
+
+        function revealCell(row, col) {
+            if (!game || game.gameOver || game.win || game.isScrolling) return;
+            if (row < 0 || row >= game.rows || col < 0 || col >= game.cols) return;
+            if (game.revealed[row][col] || game.flagged[row][col] === 1) return;
+            if (game.firstClick) {
+                placeMines(row, col);
+                game.firstClick = false;
+                startTimer();
+            }
+
+            if (!game.endless && game.board[row][col] === -1 && isTwoChoiceProtection(row, col)) {
+                handleTwoChoiceWin(row, col);
+                return;
+            }
+
+            game.revealed[row][col] = true;
+            game.score++;
+            if (game.board[row][col] === -1) {
+                if (game.endless) {
+                    endlessHp -= 5;
+                    updateHpDisplay();
+                    if (endlessHp <= 0) {
+                        endlessHp = 0;
+                        game.gameOver = true;
+                        smileyBtn.textContent = '💀';
+                        var survival = formatTime(Math.floor((performance.now() - endlessStartTime) / 1000));
+                        showOverlay('生命值耗尽！\n存活时间：' + survival);
+                    }
+                    updateMinesCount();
+                    return;
+                } else {
+                    game.flashingMine = { row: row, col: col };
+                    game.gameOver = true;
+                    smileyBtn.textContent = '😵';
+                    stopTimer();
+                    for (var r = 0; r < game.rows; r++) {
+                        for (var c = 0; c < game.cols; c++) {
+                            if (game.board[r][c] === -1) game.revealed[r][c] = true;
+                        }
+                    }
+                    showOverlay('踩到地雷！');
+                    return;
+                }
+            }
+            if (game.board[row][col] === 0) {
+                var stack = [[row, col]];
+                while (stack.length) {
+                    var pos = stack.pop();
+                    for (var dr = -1; dr <= 1; dr++) {
+                        for (var dc = -1; dc <= 1; dc++) {
+                            if (dr === 0 && dc === 0) continue;
+                            var nr = pos[0] + dr, nc = pos[1] + dc;
+                            if (nr >= 0 && nr < game.rows && nc >= 0 && nc < game.cols && !game.revealed[nr][nc] && game.flagged[nr][nc] !== 1) {
+                                game.revealed[nr][nc] = true;
+                                game.score++;
+                                if (game.board[nr][nc] === 0) stack.push([nr, nc]);
+                            }
+                        }
+                    }
+                }
+            }
+            updateMinesCount();
+            checkWin();
+            if (autoFlagEnabled && !game.gameOver && !game.win) autoFlagAllMatchingNumbers();
+        }
+
+        function handleTwoChoiceWin(row, col) {
+            var otherRow = -1, otherCol = -1;
+            for (var r = 0; r < game.rows; r++) {
+                for (var c = 0; c < game.cols; c++) {
+                    if (!game.revealed[r][c] && !(r === row && c === col)) {
+                        otherRow = r;
+                        otherCol = c;
+                    }
+                }
+            }
+            if (otherRow === -1) return;
+            game.board[row][col] = 0;
+            game.board[otherRow][otherCol] = -1;
+            var count = 0;
+            for (var dr = -1; dr <= 1; dr++) {
+                for (var dc = -1; dc <= 1; dc++) {
+                    var nr = row + dr, nc = col + dc;
+                    if (nr >= 0 && nr < game.rows && nc >= 0 && nc < game.cols && game.board[nr][nc] === -1) count++;
+                }
+            }
+            game.board[row][col] = count;
+            game.flagged[otherRow][otherCol] = 1;
+            game.revealed[row][col] = true;
+            updateMinesCount();
+            game.win = true;
+            smileyBtn.textContent = '😎';
+            stopTimer();
+            if (game.scrollTimer) clearInterval(game.scrollTimer);
+            if (initialCellSizeForWin && game.cellSize !== initialCellSizeForWin) {
+                setCellSize(initialCellSizeForWin, false);
+                canvasWrapper.scrollTop = 0;
+                canvasWrapper.scrollLeft = 0;
+            }
+            showOverlay('你赢了！（二选一保护）');
+        }
+
+        function isTwoChoiceProtection(row, col) {
+            if (!game || game.gameOver || game.win) return false;
+            if (game.board[row][col] !== -1 || game.revealed[row][col] || game.flagged[row][col] === 1) return false;
+            var unrevealedCount = 0, unrevealedMineCount = 0;
+            for (var r = 0; r < game.rows; r++) {
+                for (var c = 0; c < game.cols; c++) {
+                    if (!game.revealed[r][c]) {
+                        unrevealedCount++;
+                        if (game.board[r][c] === -1) unrevealedMineCount++;
+                    }
+                }
+            }
+            return unrevealedCount === 2 && unrevealedMineCount === 1;
+        }
+
+        function autoFlagAllMatchingNumbers() {
+            if (!game || game.gameOver || game.win) return;
+            for (var r = 0; r < game.rows; r++) {
+                for (var c = 0; c < game.cols; c++) {
+                    if (!game.revealed[r][c] || game.board[r][c] <= 0) continue;
+                    var allUnrevealed = [];
+                    var unflaggedUnrevealed = [];
+                    for (var dr = -1; dr <= 1; dr++) {
+                        for (var dc = -1; dc <= 1; dc++) {
+                            if (dr === 0 && dc === 0) continue;
+                            var nr = r + dr, nc = c + dc;
+                            if (nr >= 0 && nr < game.rows && nc >= 0 && nc < game.cols && !game.revealed[nr][nc]) {
+                                allUnrevealed.push([nr, nc]);
+                                if (game.flagged[nr][nc] === 0) unflaggedUnrevealed.push([nr, nc]);
+                            }
+                        }
+                    }
+                    if (allUnrevealed.length === game.board[r][c]) {
+                        for (var i = 0; i < unflaggedUnrevealed.length; i++) {
+                            var pos = unflaggedUnrevealed[i];
+                            game.flagged[pos[0]][pos[1]] = 1;
+                        }
+                    }
+                }
+            }
+            updateMinesCount();
+            draw();
+        }
+
+        function toggleFlag(r, c) {
+            if (!game || game.gameOver || game.win || game.isScrolling) return;
+            if (r < 0 || r >= game.rows || c < 0 || c >= game.cols) return;
+            if (!game.endless && game.revealed[r][c]) return;
+            if (game.endless && game.revealed[r][c] && game.board[r][c] !== -1) return;
+
+            var current = game.flagged[r][c];
+            var newFlag = 0;
+            if (current === 0) newFlag = 1;
+            else if (current === 1) newFlag = 2;
+            else newFlag = 0;
+
+            if (game.endless && current === 0 && newFlag === 1 && !game.revealed[r][c] && game.board[r][c] !== -1) {
+                endlessWrongFlagCount++;
+                if (endlessWrongFlagCount >= 5) {
+                    var deduct = Math.floor(endlessWrongFlagCount / 5) * 3;
+                    endlessHp -= deduct;
+                    endlessWrongFlagCount = endlessWrongFlagCount % 5;
+                    updateHpDisplay();
+                    if (endlessHp <= 0) {
+                        endlessHp = 0;
+                        game.gameOver = true;
+                        smileyBtn.textContent = '💀';
+                        var survival = formatTime(Math.floor((performance.now() - endlessStartTime) / 1000));
+                        showOverlay('生命值耗尽！\n存活时间：' + survival);
+                        updateEndlessStats();
+                        return;
+                    }
+                }
+            }
+            game.flagged[r][c] = newFlag;
+            updateMinesCount();
+            updateEndlessStats();
+            draw();
+            if (autoFlagEnabled && !game.gameOver && !game.win) autoFlagAllMatchingNumbers();
+        }
+
+        function chordCell(r, c) {
+            if (!game || game.gameOver || game.win || game.isScrolling) return;
+            if (r < 0 || r >= game.rows || c < 0 || c >= game.cols || !game.revealed[r][c] || game.board[r][c] <= 0) return;
+            var flaggedCount = 0;
+            var unflaggedUnrevealed = [];
+            for (var dr = -1; dr <= 1; dr++) {
+                for (var dc = -1; dc <= 1; dc++) {
+                    if (dr === 0 && dc === 0) continue;
+                    var nr = r + dr, nc = c + dc;
+                    if (nr >= 0 && nr < game.rows && nc >= 0 && nc < game.cols) {
+                        if (game.flagged[nr][nc] === 1) {
+                            flaggedCount++;
+                        } else if (!game.revealed[nr][nc] && game.flagged[nr][nc] === 0) {
+                            unflaggedUnrevealed.push([nr, nc]);
+                        }
+                    }
+                }
+            }
+            if (flaggedCount >= game.board[r][c]) {
+                for (var i = 0; i < unflaggedUnrevealed.length; i++) {
+                    revealCell(unflaggedUnrevealed[i][0], unflaggedUnrevealed[i][1]);
+                }
+            } else {
+                game.flashCells = unflaggedUnrevealed;
+                game.flashStartTime = performance.now();
+            }
+        }
+
+        function checkWin() {
+            if (game.endless) return;
+            for (var r = 0; r < game.rows; r++) {
+                for (var c = 0; c < game.cols; c++) {
+                    if (game.board[r][c] !== -1 && !game.revealed[r][c]) return;
+                }
+            }
+            game.win = true;
+            handleWin();
+        }
+
+        function handleWin() {
+            for (var r = 0; r < game.rows; r++) {
+                for (var c = 0; c < game.cols; c++) {
+                    if (!game.revealed[r][c] && game.flagged[r][c] === 0) game.flagged[r][c] = 1;
+                }
+            }
+            updateMinesCount();
+            smileyBtn.textContent = '😎';
+            stopTimer();
+            if (game.scrollTimer) clearInterval(game.scrollTimer);
+            if (initialCellSizeForWin && game.cellSize !== initialCellSizeForWin) {
+                setCellSize(initialCellSizeForWin, false);
+                canvasWrapper.scrollTop = 0;
+                canvasWrapper.scrollLeft = 0;
+            }
+            showOverlay('你赢了！');
+        }
+
+        function updateMinesCount() {
+            if (!game) return;
+            var totalMines = game.mines;
+            if (game.endless) {
+                totalMines = 0;
+                for (var r = 0; r < game.rows; r++) {
+                    for (var c = 0; c < game.cols; c++) {
+                        if (game.board[r][c] === -1) totalMines++;
+                    }
+                }
+            }
+            var flags = game.flagged.flat().filter(function(f) { return f === 1; }).length;
+            minesCountSpan.textContent = (totalMines - flags).toString().padStart(3, '0');
+        }
+
+        function updateHpDisplay() {
+            hpDisplay.textContent = '❤️' + endlessHp;
+            hpDisplay.style.color = '#ff0000';
+            setTimeout(function() { hpDisplay.style.color = '#ff6b6b'; }, 300);
+        }
+
+        function updateEndlessStats() {
+            if (!game || !game.endless) return;
+            endlessStats.textContent = '错旗: ' + endlessWrongFlagCount + '/5\n未标雷: ' + endlessUnmarkedMineCount + '/3';
+        }
+
+        function formatTime(seconds) {
+            var mins = Math.floor(seconds / 60);
+            var secs = seconds % 60;
+            return mins.toString().padStart(2, '0') + ':' + secs.toString().padStart(2, '0');
+        }
+
+        function performScroll() {
+            if (!game || !game.endless || game.gameOver || game.win || game.isScrolling) return;
+            game.isScrolling = true;
+            var scrollRows = 5;
+            var scrollDistance = scrollRows * game.cellSize;
+            var duration = 400;
+            var startTime = performance.now();
+            var startBoard = game.board.map(function(row) { return row.slice(); });
+            var startRevealed = game.revealed.map(function(row) { return row.slice(); });
+            var startFlagged = game.flagged.map(function(row) { return row.slice(); });
+
+            function animateScroll(now) {
+                var elapsed = now - startTime;
+                var progress = Math.min(elapsed / duration, 1);
+                var offset = Math.floor(scrollDistance * progress);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                var cellSize = game.cellSize;
+                for (var r = 0; r < game.rows; r++) {
+                    for (var c = 0; c < game.cols; c++) {
+                        var x = c * cellSize;
+                        var y = r * cellSize - offset;
+                        if (y + cellSize < 0) continue;
+                        drawCellAt(r, c, x, y, startBoard, startRevealed, startFlagged);
+                    }
+                }
+                if (progress < 1) {
+                    requestAnimationFrame(animateScroll);
+                } else {
+                    completeScroll();
+                }
+            }
+            requestAnimationFrame(animateScroll);
+        }
+
+        function completeScroll() {
+            var unmarkedMines = 0;
+            for (var r = 0; r < 5; r++) {
+                for (var c = 0; c < game.cols; c++) {
+                    if (game.board[r][c] === -1 && game.flagged[r][c] !== 1) unmarkedMines++;
+                }
+            }
+            if (unmarkedMines > 0) {
+                endlessUnmarkedMineCount += unmarkedMines;
+                while (endlessUnmarkedMineCount >= 3) {
+                    endlessUnmarkedMineCount -= 3;
+                    endlessHp -= 2;
+                    updateHpDisplay();
+                    if (endlessHp <= 0) {
+                        endlessHp = 0;
+                        game.gameOver = true;
+                        smileyBtn.textContent = '💀';
+                        var survival = formatTime(Math.floor((performance.now() - endlessStartTime) / 1000));
+                        showOverlay('生命值耗尽！\n存活时间：' + survival);
+                        game.isScrolling = false;
+                        return;
+                    }
+                }
+            }
+            for (var i = 0; i < 5; i++) {
+                game.board.shift();
+                game.revealed.shift();
+                game.flagged.shift();
+            }
+            var mineProb = game.mines / (game.rows * game.cols);
+            for (var i = 0; i < 5; i++) {
+                var br = [], rr = [], fr = [];
+                for (var c = 0; c < game.cols; c++) {
+                    br.push(Math.random() < mineProb ? -1 : 0);
+                    rr.push(false);
+                    fr.push(0);
+                }
+                game.board.push(br);
+                game.revealed.push(rr);
+                game.flagged.push(fr);
+            }
+            for (var r = 0; r < game.rows; r++) {
+                for (var c = 0; c < game.cols; c++) {
+                    if (game.board[r][c] === -1) continue;
+                    var n = 0;
+                    for (var dr = -1; dr <= 1; dr++) {
+                        for (var dc = -1; dc <= 1; dc++) {
+                            var nr = r + dr, nc = c + dc;
+                            if (nr >= 0 && nr < game.rows && nc >= 0 && nc < game.cols && game.board[nr][nc] === -1) n++;
+                        }
+                    }
+                    game.board[r][c] = n;
+                }
+            }
+            if (game.flashingMine && game.flashingMine.row < 5) game.flashingMine = null;
+            updateMinesCount();
+            updateEndlessStats();
+            game.isScrolling = false;
+            endlessPhase = 'loading';
+            endlessPhaseStartTime = performance.now();
+            rainbowBar.style.width = '0%';
+            draw();
+            if (autoFlagEnabled) autoFlagAllMatchingNumbers();
+        }
+
+        function updateRainbowBar() {
+            if (!game || !game.endless || game.gameOver || game.win || game.isScrolling) return;
+            var now = performance.now();
+            var progress = 0;
+            if (endlessPhase === 'countdown') {
+                var elapsed = now - endlessPhaseStartTime;
+                progress = Math.max(0, 1 - elapsed / ENDLESS_COUNTDOWN_MS);
+                if (elapsed >= ENDLESS_COUNTDOWN_MS) {
+                    endlessPhase = 'loading';
+                    endlessPhaseStartTime = now;
+                    progress = 0;
+                }
+            } else {
+                var elapsed = now - endlessPhaseStartTime;
+                progress = Math.min(1, elapsed / ENDLESS_LOADING_MS);
+                if (progress >= 1) {
+                    performScroll();
+                    return;
+                }
+            }
+            rainbowBar.style.width = (progress * 100) + '%';
+        }
+
+        function showOverlay(text) {
+            resultText.textContent = text;
+            overlay.style.display = 'flex';
+        }
+
+        function updateStatusBar() { }
+
+        function draw() {
+            if (!game) return;
+            var rows = game.rows, cols = game.cols, cellSize = game.cellSize;
+            var board = game.board, revealed = game.revealed, flagged = game.flagged;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            var isFlashing = performance.now() - game.flashStartTime < FLASH_DURATION_MS;
+            var flashSet = isFlashing ? new Set(game.flashCells.map(function(pos) { return pos[0] + ',' + pos[1]; })) : null;
+            for (var r = 0; r < rows; r++) {
+                for (var c = 0; c < cols; c++) {
+                    var x = c * cellSize, y = r * cellSize;
+                    if (flashSet && flashSet.has(r + ',' + c) && !revealed[r][c] && flagged[r][c] === 0) {
+                        ctx.fillStyle = '#ffd43b';
+                        ctx.fillRect(x, y, cellSize, cellSize);
+                        ctx.strokeStyle = '#1e1e2e';
+                        ctx.lineWidth = 0.5;
+                        ctx.strokeRect(x, y, cellSize, cellSize);
+                        continue;
+                    }
+                    var isFlashMine = game.flashingMine && r === game.flashingMine.row && c === game.flashingMine.col && revealed[r][c] && board[r][c] === -1;
+                    drawCellAt(r, c, x, y, board, revealed, flagged, isFlashMine);
+                }
+            }
+        }
+
+        function gameLoop() {
+            if (!game) return;
+            if (!game.isScrolling) {
+                draw();
+                updateStatusBar();
+                if (game.endless && !game.gameOver && !game.win) updateRainbowBar();
+            }
+            game.animationId = requestAnimationFrame(gameLoop);
+        }
+
+        function setCellSize(newSize, keepScroll) {
+            if (keepScroll === undefined) keepScroll = true;
+            if (!game) return;
+            newSize = Math.max(minCellSize, Math.min(maxCellSize, newSize));
+            if (newSize === game.cellSize) return;
+            var oldWidth = canvas.width, oldHeight = canvas.height;
+            var scrollRatioX = keepScroll ? canvasWrapper.scrollLeft / oldWidth : 0;
+            var scrollRatioY = keepScroll ? canvasWrapper.scrollTop / oldHeight : 0;
+            game.cellSize = newSize;
+            canvas.width = game.cols * newSize;
+            canvas.height = game.rows * newSize;
+            canvas.style.width = canvas.width + 'px';
+            canvas.style.height = canvas.height + 'px';
+            if (keepScroll) {
+                canvasWrapper.scrollLeft = scrollRatioX * canvas.width;
+                canvasWrapper.scrollTop = scrollRatioY * canvas.height;
+            } else {
+                canvasWrapper.scrollLeft = 0;
+                canvasWrapper.scrollTop = 0;
+            }
+            draw();
+        }
+
+        function getGridPosition(e) {
+            var rect = canvas.getBoundingClientRect();
+            var scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
+            var clientX, clientY;
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            var mx = (clientX - rect.left) * scaleX;
+            var my = (clientY - rect.top) * scaleY;
+            return { row: Math.floor(my / game.cellSize), col: Math.floor(mx / game.cellSize) };
+        }
+
+        function onPointerDown(e) {
+            if (isPinching || (game && game.isScrolling)) return;
+            if (!game || game.gameOver || game.win) return;
+            if (e.button === 2) {
+                e.preventDefault();
+                var pos = getGridPosition(e);
+                if (pos.row < 0 || pos.row >= game.rows || pos.col < 0 || pos.col >= game.cols) return;
+                if (game.revealed[pos.row][pos.col] && game.board[pos.row][pos.col] > 0) chordCell(pos.row, pos.col);
+                else toggleFlag(pos.row, pos.col);
+                return;
+            }
+            e.preventDefault();
+            var pos = getGridPosition(e);
+            if (pos.row < 0 || pos.row >= game.rows || pos.col < 0 || pos.col >= game.cols) return;
+            var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            pressStartClientX = clientX;
+            pressStartClientY = clientY;
+            pressStartPos = pos;
+            longPressTriggered = false;
+            isDragging = false;
+            longPressTimer = setTimeout(function() {
+                if (pressStartPos) {
+                    var pr = pressStartPos.row, pc = pressStartPos.col;
+                    if (!game.revealed[pr][pc]) revealCell(pr, pc);
+                    longPressTriggered = true;
+                }
+            }, LONG_PRESS_MS);
+        }
+
+        function onPointerMove(e) {
+            if (isPinching || (game && game.isScrolling)) return;
+            if (!game || game.gameOver || game.win || !pressStartPos) return;
+            var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            var dx = Math.abs(clientX - pressStartClientX), dy = Math.abs(clientY - pressStartClientY);
+            if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
+                isDragging = true;
+                if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+                longPressTriggered = false;
+            }
+        }
+
+        function onPointerUp(e) {
+            if (isPinching || (game && game.isScrolling)) return;
+            if (!game || game.gameOver || game.win) return;
+            if (e.button === 2) return;
+            e.preventDefault();
+            if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+            if (isDragging) { pressStartPos = null; isDragging = false; return; }
+            if (longPressTriggered) { pressStartPos = null; longPressTriggered = false; return; }
+            if (pressStartPos) {
+                var pr = pressStartPos.row, pc = pressStartPos.col;
+                if (game.firstClick) {
+                    revealCell(pr, pc);
+                } else if (game.endless && game.revealed[pr][pc] && game.board[pr][pc] === -1) {
+                    toggleFlag(pr, pc);
+                } else if (game.revealed[pr][pc] && game.board[pr][pc] > 0) {
+                    chordCell(pr, pc);
+                } else if (!game.revealed[pr][pc]) {
+                    toggleFlag(pr, pc);
+                }
+            }
+            pressStartPos = null;
+            longPressTriggered = false;
+        }
+
+        function onPointerLeave() {
+            if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+            pressStartPos = null;
+            longPressTriggered = false;
+            isDragging = false;
+        }
+
+        function getDistance(t1, t2) {
+            var dx = t1.clientX - t2.clientX;
+            var dy = t1.clientY - t2.clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        canvas.addEventListener('touchstart', function(e) {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                isPinching = true;
+                pinchStartDistance = getDistance(e.touches[0], e.touches[1]);
+                pinchStartCellSize = game ? game.cellSize : maxCellSize;
+                if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+                longPressTriggered = false;
+                pressStartPos = null;
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', function(e) {
+            if (isPinching && e.touches.length === 2) {
+                e.preventDefault();
+                var newDistance = getDistance(e.touches[0], e.touches[1]);
+                var scale = newDistance / pinchStartDistance;
+                var newCellSize = Math.round(pinchStartCellSize * scale);
+                setCellSize(newCellSize, true);
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', function(e) {
+            if (e.touches.length < 2) {
+                isPinching = false;
+                pinchStartDistance = 0;
+            }
+        });
+
+        canvas.addEventListener('touchcancel', function() {
+            isPinching = false;
+            pinchStartDistance = 0;
+        });
+
+        canvas.addEventListener('pointerdown', onPointerDown);
+        canvas.addEventListener('pointermove', onPointerMove);
+        canvas.addEventListener('pointerup', onPointerUp);
+        canvas.addEventListener('pointerleave', onPointerLeave);
+        canvas.addEventListener('pointercancel', onPointerLeave);
+        canvas.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
+        btnRestart.addEventListener('click', restartGame);
+        btnMenu.addEventListener('click', exitToMenu);
+        smileyBtn.addEventListener('click', restartGame);
+        btnHome.addEventListener('click', exitToMenu);
+        btnAutoFlag.addEventListener('click', function() {
+            autoFlagEnabled = !autoFlagEnabled;
+            updateAutoFlagButton();
+            if (game && !game.firstClick) restartGame();
+        });
+
+        btnCustomConfirm.addEventListener('click', function() {
+            var rows = parseInt(inputRowsDialog.value) || 9;
+            var cols = parseInt(inputColsDialog.value) || 9;
+            var mines = parseInt(inputMinesDialog.value) || 10;
+            rows = Math.max(5, Math.min(30, rows));
+            cols = Math.max(5, Math.min(30, cols));
+            var maxMines = rows * cols - 1;
+            mines = Math.max(1, Math.min(maxMines, mines));
+            customConfig = { rows: rows, cols: cols, mines: mines };
+            customDialog.style.display = 'none';
+            menuDiv.style.display = 'none';
+            gameDiv.style.display = 'flex';
+            initGame();
+        });
+
+        btnCustomCancel.addEventListener('click', function() { customDialog.style.display = 'none'; });
+
+        document.addEventListener('keydown', function(e) {
+            if (menuDiv.style.display !== 'none') {
+                if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    navigateMenu(e.key === 'ArrowDown' ? 1 : -1);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    startGame(menuItems[menuIndex].dataset.mode);
+                }
+            } else if (e.key === 'Escape') {
+                exitToMenu();
+            }
+        });
+
+        menuItems.forEach(function(item, index) {
+            item.addEventListener('click', function() {
+                menuIndex = index;
+                updateMenuSelection();
+                startGame(item.dataset.mode);
+            });
+            item.addEventListener('mouseenter', function() {
+                menuIndex = index;
+                updateMenuSelection();
+            });
+        });
+
+        document.addEventListener('touchmove', function(e) {
+            if (gameDiv.style.display !== 'none' && !canvasWrapper.contains(e.target)) e.preventDefault();
+        }, { passive: false });
+
+        function handleResize() {
+            updateZoomBounds();
+            if (game && !game.gameOver && !game.win) restartGame();
+        }
+        window.addEventListener('resize', handleResize);
+
+        function showNumKeyboard(inputField) { currentInputField = inputField; numKeyboard.style.display = 'grid'; }
+        function hideNumKeyboard() { numKeyboard.style.display = 'none'; currentInputField = null; }
+
+        inputRows.addEventListener('click', function() { showNumKeyboard(inputRows); });
+        inputCols.addEventListener('click', function() { showNumKeyboard(inputCols); });
+        inputMines.addEventListener('click', function() { showNumKeyboard(inputMines); });
+
+        document.querySelectorAll('#num-keyboard button').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                if (!currentInputField) return;
+                var key = btn.textContent;
+                if (key === 'C') currentInputField.value = '';
+                else if (key === '←') currentInputField.value = currentInputField.value.slice(0, -1);
+                else if (key === '确定') {
+                    hideNumKeyboard();
+                    var rows = parseInt(inputRows.value) || 9;
+                    var cols = parseInt(inputCols.value) || 9;
+                    var mines = parseInt(inputMines.value) || 10;
+                    rows = Math.max(5, Math.min(30, rows));
+                    cols = Math.max(5, Math.min(30, cols));
+                    var maxMines = rows * cols - 1;
+                    mines = Math.max(1, Math.min(maxMines, mines));
+                    inputRows.value = rows;
+                    inputCols.value = cols;
+                    inputMines.value = mines;
+                    customConfig = { rows: rows, cols: cols, mines: mines };
+                    restartGame();
+                } else if (/^\d$/.test(key)) {
+                    currentInputField.value += key;
+                }
+            });
+        });
+
+        updateMenuSelection();
+    </script>
+</body>
+</html>
